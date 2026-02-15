@@ -9,8 +9,6 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.IBinder
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.helios_alarm_clock.HeliosApp
@@ -32,7 +30,6 @@ class AlarmRingService : Service() {
     @Inject lateinit var alarmDao: AlarmDao
 
     private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -57,7 +54,6 @@ class AlarmRingService : Service() {
         }
 
         startSound()
-        startVibration()
 
         // Delete the fired alarm from the database
         if (alarmId.isNotEmpty()) {
@@ -86,8 +82,6 @@ class AlarmRingService : Service() {
             } catch (_: Exception) {}
         }
         mediaPlayer = null
-        vibrator?.cancel()
-        vibrator = null
         scope.cancel()
         super.onDestroy()
     }
@@ -113,16 +107,6 @@ class AlarmRingService : Service() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start alarm sound", e)
-        }
-    }
-
-    private fun startVibration() {
-        try {
-            vibrator = getSystemService(Vibrator::class.java)
-            val pattern = longArrayOf(0, 800, 400, 800, 400)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start vibration", e)
         }
     }
 

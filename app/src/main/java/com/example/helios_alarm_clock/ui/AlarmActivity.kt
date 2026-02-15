@@ -1,11 +1,6 @@
 package com.example.helios_alarm_clock.ui
 
-import android.media.AudioAttributes
-import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.os.Bundle
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -30,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.helios_alarm_clock.data.AlarmDao
+import com.example.helios_alarm_clock.service.AlarmRingService
 import com.example.helios_alarm_clock.ui.theme.HeliosTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -45,8 +41,6 @@ class AlarmActivity : ComponentActivity() {
 
     @Inject lateinit var alarmDao: AlarmDao
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,8 +54,7 @@ class AlarmActivity : ComponentActivity() {
         val alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: ""
         val label = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm"
 
-        startSound()
-        startVibration()
+        // Sound + vibration are handled by AlarmRingService
 
         // Delete the fired alarm from the database
         if (alarmId.isNotEmpty()) {
@@ -91,47 +84,7 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private fun stopAlarm() {
-        mediaPlayer?.let {
-            try {
-                if (it.isPlaying) it.stop()
-                it.release()
-            } catch (_: Exception) {}
-        }
-        mediaPlayer = null
-        vibrator?.cancel()
-        vibrator = null
-    }
-
-    private fun startSound() {
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                ?: return
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                setDataSource(this@AlarmActivity, alarmUri)
-                isLooping = true
-                prepare()
-                start()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start alarm sound", e)
-        }
-    }
-
-    private fun startVibration() {
-        try {
-            vibrator = getSystemService(Vibrator::class.java)
-            val pattern = longArrayOf(0, 800, 400, 800, 400)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start vibration", e)
-        }
+        AlarmRingService.stop(this)
     }
 
     companion object {
