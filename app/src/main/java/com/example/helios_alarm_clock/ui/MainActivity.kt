@@ -12,7 +12,6 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +59,7 @@ import java.util.Calendar
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.helios_alarm_clock.data.AlarmEntity
+import com.example.helios_alarm_clock.service.KtorService
 import com.example.helios_alarm_clock.ui.theme.HeliosTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermissions()
+        KtorService.start(this)
 
         setContent {
             HeliosTheme {
@@ -114,7 +115,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
     val alarms by viewModel.alarms.collectAsStateWithLifecycle()
-    val serverRunning by viewModel.serverRunning.collectAsStateWithLifecycle()
     var showAddDialog by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
@@ -154,11 +154,7 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
         ) {
             ServerStatusCard(
                 ipAddress = viewModel.ipAddress,
-                port = viewModel.port,
-                isRunning = serverRunning,
-                onToggle = {
-                    if (serverRunning) viewModel.stopServer() else viewModel.startServer()
-                }
+                port = viewModel.port
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -204,18 +200,8 @@ fun MainScreen(viewModel: MainViewModel = hiltViewModel()) {
 @Composable
 fun ServerStatusCard(
     ipAddress: String,
-    port: Int,
-    isRunning: Boolean,
-    onToggle: () -> Unit
+    port: Int
 ) {
-    val statusColor by animateColorAsState(
-        targetValue = if (isRunning)
-            MaterialTheme.colorScheme.primary
-        else
-            MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "statusColor"
-    )
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -223,42 +209,28 @@ fun ServerStatusCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = "HTTP Server",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "$ipAddress:$port",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Column {
-                    Text(
-                        text = "HTTP Server",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (isRunning) "$ipAddress:$port" else "Stopped",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = statusColor
-                    )
-                }
-                FilledTonalButton(onClick = onToggle) {
-                    Text(if (isRunning) "Stop" else "Start")
-                }
-            }
-
-            if (isRunning) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Surface(
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = "Listening for connections",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
+                Text(
+                    text = "Listening for connections",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
         }
     }
