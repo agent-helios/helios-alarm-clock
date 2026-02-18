@@ -181,6 +181,29 @@ class KtorService : Service() {
                     val alarms = alarmDao.getAll()
                     call.respond(alarms)
                 }
+
+                get("/last-alarm") {
+                    val prefs = this@KtorService.getSharedPreferences(
+                        "last_alarm",
+                        Context.MODE_PRIVATE
+                    )
+                    val firedAt = prefs.getLong("firedAt", -1)
+                    if (firedAt == -1L) {
+                        call.respond(
+                            HttpStatusCode.NotFound,
+                            ErrorResponse("No alarm has fired yet")
+                        )
+                    } else {
+                        call.respond(
+                            LastAlarmResponse(
+                                hour = prefs.getInt("hour", 0),
+                                minute = prefs.getInt("minute", 0),
+                                label = prefs.getString("label", "") ?: "",
+                                firedAt = firedAt
+                            )
+                        )
+                    }
+                }
             }
         }.also { it.start(wait = false) }
     }
@@ -231,3 +254,6 @@ data class StatusResponse(val status: String)
 
 @Serializable
 data class ErrorResponse(val error: String)
+
+@Serializable
+data class LastAlarmResponse(val hour: Int, val minute: Int, val label: String, val firedAt: Long)

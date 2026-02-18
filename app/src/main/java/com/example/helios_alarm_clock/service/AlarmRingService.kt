@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -55,13 +56,17 @@ class AlarmRingService : Service() {
 
         startSound()
 
-        // Delete the fired alarm from the database
+        // Save as last alarm and delete from the database
         if (alarmId.isNotEmpty()) {
             scope.launch {
                 try {
+                    val alarm = alarmDao.getById(alarmId)
+                    if (alarm != null) {
+                        saveLastAlarm(alarm.hour, alarm.minute, alarm.label)
+                    }
                     alarmDao.deleteById(alarmId)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to delete alarm $alarmId", e)
+                    Log.e(TAG, "Failed to process alarm $alarmId", e)
                 }
             }
         }
@@ -140,6 +145,17 @@ class AlarmRingService : Service() {
             .addAction(0, "Dismiss", stopPi)
             .setOngoing(true)
             .build()
+    }
+
+    private fun saveLastAlarm(hour: Int, minute: Int, label: String) {
+        val prefs = getSharedPreferences("last_alarm", Context.MODE_PRIVATE)
+        val now = Calendar.getInstance()
+        prefs.edit()
+            .putInt("hour", hour)
+            .putInt("minute", minute)
+            .putString("label", label)
+            .putLong("firedAt", now.timeInMillis)
+            .apply()
     }
 
     companion object {
