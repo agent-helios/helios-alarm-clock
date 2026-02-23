@@ -26,10 +26,12 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+            storeFile = if (keystorePath != null) file(keystorePath)
+                        else file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = System.getenv("RELEASE_KEYSTORE_PASS") ?: "android"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("RELEASE_KEY_PASS") ?: "android"
         }
     }
     buildTypes {
