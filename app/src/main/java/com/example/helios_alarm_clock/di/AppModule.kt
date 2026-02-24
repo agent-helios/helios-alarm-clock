@@ -23,7 +23,7 @@ object AppModule {
             AlarmDatabase::class.java,
             AlarmDatabase.NAME
         )
-            .addMigrations(AlarmDatabase.MIGRATION_1_2)
+            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3)
             .build()
 
     @Provides
